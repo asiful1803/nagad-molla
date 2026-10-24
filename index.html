@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M/S. Molla Traders - MFS Report</title>
+  
+  <link rel="manifest" href="data:application/manifest+json,{
+    'name': 'Molla Traders MFS',
+    'short_name': 'MollaTraders',
+    'start_url': '.',
+    'display': 'standalone',
+    'background_color': '#f1f5f9',
+    'theme_color': '#1e293b'
+  }">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
+    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    /* Easy DatePicker Trigger */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      filter: invert(1);
+      padding: 4px;
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen">
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="flex items-center justify-center min-h-screen p-4 bg-slate-900">
+    <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-bold">
+          <i class="fa-solid fa-building-columns"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800">M/S. Molla Traders</h2>
+        <p class="text-xs text-slate-500 mt-1">Distributor of Nagad Narsingdi Sadar</p>
+      </div>
+
+      <!-- autocomplete="off" যোগ করা হয়েছে যাতে ব্রাউজার নিজে থেকে পাসওয়ার্ড সেভ বা অটো-ফিল না করে -->
+      <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off">
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">USER ID</label>
+          <input type="text" id="username" value="admin" autocomplete="off" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm">
+        </div>
+        <div class="mb-6">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">PASSWORD</label>
+          <!-- ডিফল্ট ভ্যালু 1234 ফাঁকা রাখা হয়েছে অথবা ব্রাউজারের অটোসেভ আটকাতে নতুন পাসওয়ার্ড অ্যাট্রিবিউট দেওয়া হয়েছে -->
+          <input type="password" id="password" value="" placeholder="পাসওয়ার্ড দিন" autocomplete="new-password" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm">
+        </div>
+
+        <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-pink-500/30 transition text-sm flex items-center justify-center gap-2">
+          <span>লগইন করুন</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+      <div id="loginError" class="text-red-500 text-xs text-center mt-3 hidden"></div>
+    </div>
+  </div>
+
+  <!-- MAIN APP DASHBOARD -->
+  <div id="appDashboard" class="hidden min-h-screen pb-12">
+    
+    <!-- Top Header Navigation Bar -->
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
+      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div>
+          <h1 class="font-bold text-base leading-tight">M/S. Molla Traders</h1>
+          <p class="text-[10px] text-slate-400">DAILY ACCOUNTS DASHBOARD</p>
+        </div>
+        
+        <!-- পাসওয়ার্ড পরিবর্তন এবং লগআউট বাটন -->
+        <div class="flex items-center gap-2">
+          <button onclick="changePassword()" class="text-xs bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md">
+            <i class="fa-solid fa-key mr-1"></i> পাসওয়ার্ড বদল
+          </button>
+          <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-md border border-slate-700">
+            <i class="fa-solid fa-right-from-bracket mr-1"></i> বের হন
+          </button>
+        </div>
+      </div>
+
+      <!-- Date Selector Toolbar (With Interactive Calendar) -->
+      <div class="bg-slate-800 border-t border-slate-700 px-4 py-2">
+        <div class="max-w-4xl mx-auto flex items-center justify-between gap-2">
+          <label onclick="document.getElementById('reportDate').showPicker()" class="text-xs font-medium text-pink-300 flex items-center gap-1.5 cursor-pointer select-none">
+            <i class="fa-regular fa-calendar-days text-sm"></i> 
+            <span>SELECT DATE:</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <input type="date" id="reportDate" onchange="loadReportData()" onclick="this.showPicker()" class="bg-slate-900 text-white border border-slate-600 px-3 py-1 text-xs rounded focus:outline-none focus:border-pink-500 cursor-pointer">
+            <button onclick="loadReportData()" class="bg-pink-600 hover:bg-pink-700 text-white px-3 py-1 rounded text-xs font-medium flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate text-[10px]"></i> রিফ্রেশ
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Loading Indicator -->
+    <div id="loadingSpinner" class="hidden my-12 text-center">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-pink-500 border-t-transparent"></div>
+      <p class="text-xs text-slate-500 mt-2">গুগল শিট থেকে ডাটা ও কালার লোড হচ্ছে...</p>
+    </div>
+
+    <!-- MAIN REPORTS CONTENT AREA -->
+    <main id="reportsContainer" class="max-w-4xl mx-auto p-3 space-y-5">
+
+      <!-- Web App Config Alert Box -->
+      <div id="configAlert" class="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg text-xs">
+        <p class="font-bold mb-1"><i class="fa-solid fa-gear"></i> সেটআপের নির্দেশনা:</p>
+        <p>আপনার Google Apps Script-এর Web App URL-টি নিচে বসিয়ে কানেক্ট করুন:</p>
+        <div class="flex gap-2 mt-2">
+          <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-2 py-1 border rounded text-xs">
+          <button onclick="saveScriptUrl()" class="bg-amber-600 text-white px-3 py-1 rounded text-xs font-bold">Save</button>
+        </div>
+      </div>
+
+      <!-- TABLE 1: WORKING CAPITAL STATEMENT -->
+      <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div class="table-container p-2">
+          <table id="workingCapitalTable"></table>
+        </div>
+      </section>
+
+      <!-- TABLE 2: DAILY CASH STATEMENT -->
+      <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div class="table-container p-2">
+          <table id="cashStatementTable"></table>
+        </div>
+      </section>
+
+      <!-- TABLE 3: DAILY BANK POSITION -->
+      <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div class="table-container p-2">
+          <table id="bankPositionTable"></table>
+        </div>
+      </section>
+
+      <!-- TABLE 4: DAILY B2B STATEMENT -->
+      <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div class="table-container p-2">
+          <table id="b2bStatementTable"></table>
+        </div>
+      </section>
+
+      <!-- TABLE 5: DAILY DUE STATEMENT -->
+      <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div class="table-container p-2">
+          <table id="dueStatementTable"></table>
+        </div>
+      </section>
+
+      <!-- TABLE 6: INVESTMENT STATEMENT -->
+      <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div class="table-container p-2">
+          <table id="investmentTable"></table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    var SCRIPT_URL = localStorage.getItem("molla_script_url") || "";
+
+    document.addEventListener("DOMContentLoaded", function() {
+      var today = new Date().toISOString().split('T')[0];
+      document.getElementById("reportDate").value = today;
+
+      if (SCRIPT_URL) {
+        document.getElementById("configAlert").classList.add("hidden");
+        document.getElementById("scriptUrlInput").value = SCRIPT_URL;
+      }
+
+      // ডিফল্ট পাসওয়ার্ড '1234' সেট করা (যদি আগে থেকে সেভ করা না থাকে)
+      if (!localStorage.getItem("app_custom_password")) {
+        localStorage.setItem("app_custom_password", "1234");
+      }
+    });
+
+    function saveScriptUrl() {
+      var url = document.getElementById("scriptUrlInput").value.trim();
+      if (url) {
+        localStorage.setItem("molla_script_url", url);
+        SCRIPT_URL = url;
+        document.getElementById("configAlert").classList.add("hidden");
+        alert("Google Apps Script URL সেভ হয়েছে!");
+        loadReportData();
+      }
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      var u = document.getElementById("username").value;
+      var p = document.getElementById("password").value;
+      var savedPassword = localStorage.getItem("app_custom_password") || "1234";
+
+      if (u === "admin" && p === savedPassword) {
+        // সফল লগইনের পর পাসওয়ার্ড বক্স ক্লিয়ার করে দেওয়া
+        document.getElementById("password").value = "";
+        document.getElementById("loginError").classList.add("hidden");
+        
+        document.getElementById("loginScreen").classList.add("hidden");
+        document.getElementById("appDashboard").classList.remove("hidden");
+        if (SCRIPT_URL) {
+          loadReportData();
+        }
+      } else {
+        var err = document.getElementById("loginError");
+        err.innerText = "ভুল ইউজার আইডি অথবা পাসওয়ার্ড!";
+        err.classList.remove("hidden");
+      }
+    }
+
+    // পাসওয়ার্ড পরিবর্তনের ফাংশন
+    function changePassword() {
+      var currentPass = prompt("আপনার বর্তমান পাসওয়ার্ডটি দিন:");
+      var savedPassword = localStorage.getItem("app_custom_password") || "1234";
+
+      if (currentPass === savedPassword) {
+        var newPass = prompt("আপনার নতুন পাসওয়ার্ডটি লিখুন:");
+        if (newPass && newPass.trim() !== "") {
+          localStorage.setItem("app_custom_password", newPass.trim());
+          alert("পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে!");
+        } else {
+          alert("পাসওয়ার্ড খালি রাখা যাবে না।");
+        }
+      } else if (currentPass !== null) {
+        alert("বর্তমান পাসওয়ার্ড সঠিক নয়!");
+      }
+    }
+
+    function logout() {
+      document.getElementById("appDashboard").classList.add("hidden");
+      document.getElementById("loginScreen").classList.remove("hidden");
+    }
+
+    function loadReportData() {
+      if (!SCRIPT_URL) {
+        alert("দয়া করে প্রথমে Google Apps Script URL সেটআপ করুন!");
+        document.getElementById("configAlert").classList.remove("hidden");
+        return;
+      }
+
+      var selectedDate = document.getElementById("reportDate").value;
+      document.getElementById("loadingSpinner").classList.remove("hidden");
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "fetchReport",
+          date: selectedDate
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        document.getElementById("loadingSpinner").classList.add("hidden");
+        if (res.status === "success") {
+          renderAllTables(res.data);
+        } else {
+          alert("Error: " + res.message);
+        }
+      })
+      .catch(err => {
+        document.getElementById("loadingSpinner").classList.add("hidden");
+        console.error(err);
+        alert("গুগল শিটের সাথে যোগাযোগ করা যাচ্ছে না। নেটওয়ার্ক চেক করুন।");
+      });
+    }
+
+    function renderAllTables(data) {
+      renderStyledTable("workingCapitalTable", data.workingCapital);
+      renderStyledTable("cashStatementTable", data.cashStatement);
+      renderStyledTable("bankPositionTable", data.bankPosition);
+      renderStyledTable("b2bStatementTable", data.b2bStatement);
+      renderStyledTable("dueStatementTable", data.dueStatement);
+      renderStyledTable("investmentTable", data.investmentStatement);
+    }
+
+    function renderStyledTable(tableId, gridData) {
+      var table = document.getElementById(tableId);
+      table.innerHTML = "";
+      if (!gridData || gridData.length === 0) return;
+
+      gridData.forEach((row) => {
+        var tr = document.createElement("tr");
+        
+        var isBlank = row.every(cell => cell.text.toString().trim() === "");
+        if (isBlank) return; 
+
+        row.forEach((cellObj) => {
+          var cellElement = document.createElement("td");
+          cellElement.innerText = cellObj.text;
+
+          if (cellObj.bg && cellObj.bg !== "#ffffff") {
+            cellElement.style.backgroundColor = cellObj.bg;
+          }
+
+          if (cellObj.color && cellObj.color !== "#000000") {
+            cellElement.style.color = cellObj.color;
+          }
+          if (cellObj.bold) {
+            cellElement.style.fontWeight = "bold";
+          }
+
+          if (!isNaN(cellObj.text.replace(/,/g, '')) && cellObj.text.trim() !== "") {
+            cellElement.classList.add("text-right");
+          }
+
+          tr.appendChild(cellElement);
+        });
+        table.appendChild(tr);
+      });
+    }
+  </script>
+</body>
+</html>
